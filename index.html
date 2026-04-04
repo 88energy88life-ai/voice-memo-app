@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>音声入力メモ (辞書機能付き)</title>
+  <title>音声入力メモ (完全版)</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f5f7; color: #333; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
     h1 { font-size: 20px; margin-bottom: 30px; }
@@ -17,7 +17,6 @@
     #copyBtn { background-color: #007AFF; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; flex: 1; display: none; }
     #clearBtn { background-color: #e0e0e0; color: #555; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; width: 80px; display: none; }
 
-    /* 🌟 新しい辞書登録エリアのデザイン */
     #dictionarySection { width: 100%; max-width: 400px; margin-top: 20px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
     #dictionarySection summary { font-weight: bold; cursor: pointer; outline: none; font-size: 15px; }
     .dic-inputs { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
@@ -48,7 +47,6 @@
     <button id="clearBtn">🗑️ クリア</button>
   </div>
 
-  <!-- 🌟 追加：辞書登録アコーディオン -->
   <details id="dictionarySection">
     <summary>⚙️ 辞書登録（読み方と変換ルール）</summary>
     <div class="dic-inputs">
@@ -65,21 +63,46 @@
   </div>
 
   <script>
-    // ★★★ GASのURLを設定 ★★★
+    // ★★★ ここにGASのURLを貼り付けます ★★★
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbzqOmyy1HaUmPM0RUmsBNsMrIOn4sCudFzSC4nPl9IpjS7IlXtXWNt2I2UHb4sfmKSHLg/exec';
 
-    let mediaRecorder; let audioChunks = []; let isRecording = false;
+    let mediaRecorder; 
+    let audioChunks = []; 
+    let isRecording = false;
+    let wakeLock = null; // スリープ防止用
 
     // 要素の取得
-    const recordBtn = document.getElementById('recordBtn'); const statusText = document.getElementById('status');
-    const resultArea = document.getElementById('result'); const copyBtn = document.getElementById('copyBtn');
-    const clearBtn = document.getElementById('clearBtn'); const historyList = document.getElementById('historyList');
+    const recordBtn = document.getElementById('recordBtn'); 
+    const statusText = document.getElementById('status');
+    const resultArea = document.getElementById('result'); 
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn'); 
+    const historyList = document.getElementById('historyList');
     
     // 辞書機能の要素
-    const dicYomi = document.getElementById('dicYomi'); const dicText = document.getElementById('dicText');
-    const addDicBtn = document.getElementById('addDicBtn'); const dicStatus = document.getElementById('dicStatus');
+    const dicYomi = document.getElementById('dicYomi'); 
+    const dicText = document.getElementById('dicText');
+    const addDicBtn = document.getElementById('addDicBtn'); 
+    const dicStatus = document.getElementById('dicStatus');
 
-    // 🌟 辞書追加ボタンの処理
+    // --- スリープ防止機能 ---
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.error('スリープ防止がサポートされていません:', err);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => { wakeLock = null; });
+      }
+    }
+
+    // --- 辞書追加処理 ---
     addDicBtn.addEventListener('click', async () => {
       const yomi = dicYomi.value.trim();
       const text = dicText.value.trim();
@@ -115,7 +138,7 @@
       }
     });
 
-    // 以下、従来の録音・コピー処理
+    // --- メインボタン操作 ---
     recordBtn.addEventListener('click', async () => { !isRecording ? startRecording() : stopRecording(); });
     
     copyBtn.addEventListener('click', () => {
@@ -131,6 +154,7 @@
       copyBtn.style.display = 'none'; clearBtn.style.display = 'none';
     });
 
+    // --- 履歴追加処理 ---
     function addHistory(text) {
       const item = document.createElement('div'); item.className = 'history-item';
       const time = document.createElement('div'); time.className = 'history-time';
@@ -148,30 +172,52 @@
       historyList.insertBefore(item, historyList.firstChild);
     }
 
+    // --- 録音制御 ---
     async function startRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream); audioChunks = [];
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-        mediaRecorder.onstop = processAudio; mediaRecorder.start(); isRecording = true;
-        recordBtn.textContent = '⏹ 録音を終了する'; recordBtn.classList.add('recording'); statusText.textContent = '録音中...';
+        mediaRecorder.onstop = processAudio; 
+        mediaRecorder.start(); 
+        isRecording = true;
+        
+        recordBtn.textContent = '⏹ 録音を終了する'; 
+        recordBtn.classList.add('recording'); 
+        statusText.textContent = '録音中... (スリープしません)';
+        
         resultArea.value = ''; copyBtn.style.display = 'none'; clearBtn.style.display = 'none';
+        
+        // スリープ防止をオンにする
+        await requestWakeLock();
+
       } catch (err) { alert('マイクの使用が許可されていません。'); }
     }
 
     function stopRecording() {
       mediaRecorder.stop(); isRecording = false;
-      recordBtn.textContent = '🎤 話すにはタップ'; recordBtn.classList.remove('recording'); statusText.textContent = 'AIで処理中...';
+      recordBtn.textContent = '🎤 話すにはタップ'; 
+      recordBtn.classList.remove('recording'); 
+      statusText.textContent = 'AIで処理中...';
+      
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      
+      // スリープ防止を解除する
+      releaseWakeLock();
     }
 
+    // --- 音声送信処理 ---
     function processAudio() {
       const reader = new FileReader();
       reader.readAsDataURL(new Blob(audioChunks, { type: 'audio/webm' }));
       reader.onloadend = async () => {
         const base64data = reader.result.split(',')[1];
         try {
-          const response = await fetch(GAS_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ audioBase64: base64data, mimeType: 'audio/webm' }) });
+          const response = await fetch(GAS_URL, { 
+            method: 'POST', redirect: 'follow', 
+            headers: { 'Content-Type': 'text/plain' }, 
+            body: JSON.stringify({ audioBase64: base64data, mimeType: 'audio/webm' }) 
+          });
           const data = await response.json();
           if (data.success) {
             resultArea.value = data.text; addHistory(data.text);
