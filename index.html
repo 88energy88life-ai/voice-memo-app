@@ -3,157 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>音声入力メモ (Typeless風)</title>
+  <title>音声入力メモ (辞書機能付き)</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f4f5f7;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      margin: 0;
-    }
-    h1 {
-      font-size: 20px;
-      margin-bottom: 30px;
-    }
-    #recordBtn {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 15px 30px;
-      font-size: 18px;
-      font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      cursor: pointer;
-      transition: background-color 0.3s;
-      width: 100%;
-      max-width: 300px;
-    }
-    #recordBtn.recording {
-      background-color: #ff4444;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #666;
-      height: 20px;
-      text-align: center;
-    }
-    #result {
-      width: 100%;
-      max-width: 400px;
-      height: 150px;
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      line-height: 1.5;
-      resize: none;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-      box-sizing: border-box;
-    }
-
-    /* 👇 メインのボタンエリア（横並び） */
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      width: 100%;
-      max-width: 400px;
-      margin-top: 15px;
-    }
-    #copyBtn {
-      background-color: #007AFF;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      flex: 1; /* 横幅を自動調整 */
-      display: none;
-    }
-    #copyBtn:active { background-color: #0056b3; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f5f7; color: #333; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
+    h1 { font-size: 20px; margin-bottom: 30px; }
+    #recordBtn { background-color: #4CAF50; color: white; border: none; border-radius: 50px; padding: 15px 30px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; width: 100%; max-width: 300px; transition: background-color 0.3s; }
+    #recordBtn.recording { background-color: #ff4444; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    #status { margin-top: 20px; font-size: 14px; color: #666; height: 20px; text-align: center; }
+    #result { width: 100%; max-width: 400px; height: 150px; margin-top: 20px; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; line-height: 1.5; resize: none; box-sizing: border-box; }
     
-    #clearBtn {
-      background-color: #e0e0e0;
-      color: #555;
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      width: 80px;
-      display: none;
-    }
-    #clearBtn:active { background-color: #ccc; }
+    .action-buttons { display: flex; gap: 10px; width: 100%; max-width: 400px; margin-top: 15px; }
+    #copyBtn { background-color: #007AFF; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; flex: 1; display: none; }
+    #clearBtn { background-color: #e0e0e0; color: #555; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; width: 80px; display: none; }
 
-    /* 👇 履歴エリア */
-    #historyContainer {
-      width: 100%;
-      max-width: 400px;
-      margin-top: 40px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    .history-title {
-      font-size: 14px;
-      color: #888;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 8px;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .history-item {
-      background-color: white;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      font-size: 15px;
-      line-height: 1.5;
-    }
-    .history-time {
-      font-size: 12px;
-      color: #aaa;
-      margin-bottom: 8px;
-    }
-    
-    /* 👇 履歴カードの中のボタンエリア */
-    .history-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      justify-content: flex-end; /* 右寄せ */
-    }
-    .history-btn {
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .history-btn.copy {
-      background-color: #f0f8ff;
-      color: #007AFF;
-    }
-    .history-btn.delete {
-      background-color: #fff0f0;
-      color: #ff4444;
-    }
+    /* 🌟 新しい辞書登録エリアのデザイン */
+    #dictionarySection { width: 100%; max-width: 400px; margin-top: 20px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
+    #dictionarySection summary { font-weight: bold; cursor: pointer; outline: none; font-size: 15px; }
+    .dic-inputs { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .dic-inputs input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    #addDicBtn { background-color: #333; color: white; border: none; border-radius: 6px; padding: 10px; font-weight: bold; cursor: pointer; }
+    #dicStatus { font-size: 12px; color: #4CAF50; margin-top: 8px; text-align: center; height: 15px; }
+
+    #historyContainer { width: 100%; max-width: 400px; margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
+    .history-title { font-size: 14px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 8px; font-weight: bold; }
+    .history-item { background-color: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 15px; line-height: 1.5; }
+    .history-time { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+    .history-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+    .history-btn { border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .history-btn.copy { background-color: #f0f8ff; color: #007AFF; }
+    .history-btn.delete { background-color: #fff0f0; color: #ff4444; }
   </style>
 </head>
 <body>
@@ -164,181 +43,142 @@
   
   <textarea id="result" placeholder="ここに最新のテキストが表示されます..."></textarea>
   
-  <!-- 追加：コピーとクリアのボタンエリア -->
   <div class="action-buttons">
     <button id="copyBtn">📋 コピーする</button>
     <button id="clearBtn">🗑️ クリア</button>
   </div>
 
+  <!-- 🌟 追加：辞書登録アコーディオン -->
+  <details id="dictionarySection">
+    <summary>⚙️ 辞書登録（読み方と変換ルール）</summary>
+    <div class="dic-inputs">
+      <input type="text" id="dicYomi" placeholder="読み仮名 (例: たいぷれす)">
+      <input type="text" id="dicText" placeholder="変換後 (例: Typeless)">
+      <button id="addDicBtn">辞書に追加する</button>
+      <div id="dicStatus"></div>
+    </div>
+  </details>
+
   <div id="historyContainer">
-    <div class="history-title">📝 履歴 (ブラウザを閉じると消えます)</div>
+    <div class="history-title">📝 履歴</div>
     <div id="historyList"></div>
   </div>
 
   <script>
-    // ★★★ ここにGASのURLを貼り付けてください ★★★
+    // ★★★ GASのURLを設定 ★★★
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbzqOmyy1HaUmPM0RUmsBNsMrIOn4sCudFzSC4nPl9IpjS7IlXtXWNt2I2UHb4sfmKSHLg/exec';
 
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecording = false;
+    let mediaRecorder; let audioChunks = []; let isRecording = false;
 
-    const recordBtn = document.getElementById('recordBtn');
-    const statusText = document.getElementById('status');
-    const resultArea = document.getElementById('result');
-    const copyBtn = document.getElementById('copyBtn');
-    const clearBtn = document.getElementById('clearBtn'); // 追加
-    const historyList = document.getElementById('historyList');
+    // 要素の取得
+    const recordBtn = document.getElementById('recordBtn'); const statusText = document.getElementById('status');
+    const resultArea = document.getElementById('result'); const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn'); const historyList = document.getElementById('historyList');
+    
+    // 辞書機能の要素
+    const dicYomi = document.getElementById('dicYomi'); const dicText = document.getElementById('dicText');
+    const addDicBtn = document.getElementById('addDicBtn'); const dicStatus = document.getElementById('dicStatus');
 
-    // 録音ボタン
-    recordBtn.addEventListener('click', async () => {
-      if (!isRecording) {
-        startRecording();
-      } else {
-        stopRecording();
+    // 🌟 辞書追加ボタンの処理
+    addDicBtn.addEventListener('click', async () => {
+      const yomi = dicYomi.value.trim();
+      const text = dicText.value.trim();
+      
+      if (!yomi || !text) {
+        dicStatus.style.color = '#ff4444';
+        dicStatus.textContent = '読み仮名と変換後の両方を入力してください。';
+        return;
+      }
+
+      dicStatus.style.color = '#333';
+      dicStatus.textContent = '登録中...';
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'addDictionary', yomi: yomi, text: text })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          dicStatus.style.color = '#4CAF50';
+          dicStatus.textContent = '✅ 辞書に登録しました！';
+          dicYomi.value = ''; dicText.value = '';
+          setTimeout(() => { dicStatus.textContent = ''; }, 3000);
+        } else {
+          dicStatus.style.color = '#ff4444'; dicStatus.textContent = 'エラーが発生しました。';
+        }
+      } catch (err) {
+        dicStatus.style.color = '#ff4444'; dicStatus.textContent = '通信エラーが発生しました。';
       }
     });
 
-    // メインのコピーボタン
+    // 以下、従来の録音・コピー処理
+    recordBtn.addEventListener('click', async () => { !isRecording ? startRecording() : stopRecording(); });
+    
     copyBtn.addEventListener('click', () => {
       if (resultArea.value) {
         navigator.clipboard.writeText(resultArea.value).then(() => {
-          statusText.textContent = '📋 コピーしました！';
-          copyBtn.textContent = '✓ コピー完了';
-          setTimeout(() => { copyBtn.textContent = '📋 コピーする'; }, 2000);
-        }).catch(err => alert('コピーに失敗しました。'));
+          copyBtn.textContent = '✓ コピー完了'; setTimeout(() => { copyBtn.textContent = '📋 コピーする'; }, 2000);
+        });
       }
     });
 
-    // 追加：メインのクリアボタン
     clearBtn.addEventListener('click', () => {
-      resultArea.value = '';
-      statusText.textContent = 'クリアしました';
-      copyBtn.style.display = 'none';
-      clearBtn.style.display = 'none';
+      resultArea.value = ''; statusText.textContent = 'クリアしました';
+      copyBtn.style.display = 'none'; clearBtn.style.display = 'none';
     });
 
-    // 履歴を追加する機能（コピー＆削除ボタン付き）
     function addHistory(text) {
-      const item = document.createElement('div');
-      item.className = 'history-item';
+      const item = document.createElement('div'); item.className = 'history-item';
+      const time = document.createElement('div'); time.className = 'history-time';
+      const now = new Date(); time.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+      const content = document.createElement('div'); content.textContent = text;
+      
+      const actions = document.createElement('div'); actions.className = 'history-actions';
+      const copyHBtn = document.createElement('button'); copyHBtn.className = 'history-btn copy'; copyHBtn.innerHTML = '📋 コピー';
+      copyHBtn.onclick = () => { navigator.clipboard.writeText(text).then(() => { copyHBtn.innerHTML = '✓ コピー完了'; setTimeout(() => { copyHBtn.innerHTML = '📋 コピー'; }, 2000); }); };
+      const deleteHBtn = document.createElement('button'); deleteHBtn.className = 'history-btn delete'; deleteHBtn.innerHTML = '🗑️ 削除';
+      deleteHBtn.onclick = () => item.remove();
 
-      const time = document.createElement('div');
-      time.className = 'history-time';
-      const now = new Date();
-      time.textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-
-      const content = document.createElement('div');
-      content.textContent = text;
-
-      // 👇 履歴カード用のボタンエリアを作成
-      const actions = document.createElement('div');
-      actions.className = 'history-actions';
-
-      // 履歴用コピーボタン
-      const copyHBtn = document.createElement('button');
-      copyHBtn.className = 'history-btn copy';
-      copyHBtn.innerHTML = '📋 コピー';
-      copyHBtn.onclick = () => {
-        navigator.clipboard.writeText(text).then(() => {
-          copyHBtn.innerHTML = '✓ コピー完了';
-          setTimeout(() => { copyHBtn.innerHTML = '📋 コピー'; }, 2000);
-        });
-      };
-
-      // 履歴用削除ボタン
-      const deleteHBtn = document.createElement('button');
-      deleteHBtn.className = 'history-btn delete';
-      deleteHBtn.innerHTML = '🗑️ 削除';
-      deleteHBtn.onclick = () => {
-        item.remove(); // カードそのものを画面から消す
-      };
-
-      actions.appendChild(copyHBtn);
-      actions.appendChild(deleteHBtn);
-
-      item.appendChild(time);
-      item.appendChild(content);
-      item.appendChild(actions); // ボタンをカードに追加
-
+      actions.appendChild(copyHBtn); actions.appendChild(deleteHBtn);
+      item.appendChild(time); item.appendChild(content); item.appendChild(actions);
       historyList.insertBefore(item, historyList.firstChild);
     }
 
     async function startRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = event => {
-          if (event.data.size > 0) audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = processAudio;
-        mediaRecorder.start();
-        isRecording = true;
-        
-        recordBtn.textContent = '⏹ 録音を終了する';
-        recordBtn.classList.add('recording');
-        statusText.textContent = '録音中...';
-        
-        resultArea.value = ''; 
-        copyBtn.style.display = 'none'; 
-        clearBtn.style.display = 'none'; // 録音中はクリアボタンも隠す
-      } catch (err) {
-        alert('マイクの使用が許可されていません。');
-        console.error(err);
-      }
+        mediaRecorder = new MediaRecorder(stream); audioChunks = [];
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = processAudio; mediaRecorder.start(); isRecording = true;
+        recordBtn.textContent = '⏹ 録音を終了する'; recordBtn.classList.add('recording'); statusText.textContent = '録音中...';
+        resultArea.value = ''; copyBtn.style.display = 'none'; clearBtn.style.display = 'none';
+      } catch (err) { alert('マイクの使用が許可されていません。'); }
     }
 
     function stopRecording() {
-      mediaRecorder.stop();
-      isRecording = false;
-      
-      recordBtn.textContent = '🎤 話すにはタップ';
-      recordBtn.classList.remove('recording');
-      statusText.textContent = 'AIで処理中... (数秒かかります)';
-      
+      mediaRecorder.stop(); isRecording = false;
+      recordBtn.textContent = '🎤 話すにはタップ'; recordBtn.classList.remove('recording'); statusText.textContent = 'AIで処理中...';
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
 
     function processAudio() {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       const reader = new FileReader();
-      
-      reader.readAsDataURL(audioBlob);
+      reader.readAsDataURL(new Blob(audioChunks, { type: 'audio/webm' }));
       reader.onloadend = async () => {
         const base64data = reader.result.split(',')[1];
-        
         try {
-          const response = await fetch(GAS_URL, {
-            method: 'POST',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ audioBase64: base64data, mimeType: 'audio/webm' })
-          });
-          
+          const response = await fetch(GAS_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ audioBase64: base64data, mimeType: 'audio/webm' }) });
           const data = await response.json();
-          
           if (data.success) {
-            resultArea.value = data.text;
-            addHistory(data.text);
-
-            navigator.clipboard.writeText(data.text).then(() => {
-              statusText.textContent = '✨ 完了！(自動コピー済み)';
-            }).catch(() => {
-              statusText.textContent = '✨ 完了！(下のボタンからコピーできます)';
-            });
-            
-            // 処理が完了したらコピーボタンとクリアボタンを表示
-            copyBtn.style.display = 'block'; 
-            clearBtn.style.display = 'block'; 
-          } else {
-            statusText.textContent = 'エラーが発生しました。';
-          }
-        } catch (err) {
-          statusText.textContent = '通信エラーが発生しました。';
-        }
+            resultArea.value = data.text; addHistory(data.text);
+            navigator.clipboard.writeText(data.text).then(() => statusText.textContent = '✨ 自動コピー済み').catch(() => statusText.textContent = '✨ 完了');
+            copyBtn.style.display = 'block'; clearBtn.style.display = 'block';
+          } else { statusText.textContent = 'エラーが発生しました。'; }
+        } catch (err) { statusText.textContent = '通信エラーが発生しました。'; }
       };
     }
   </script>
