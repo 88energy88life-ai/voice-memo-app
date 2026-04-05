@@ -3,37 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>音声メモ (1時間対応・安定版)</title>
+  <title>音声入力メモ (辞書＋長時間対応)</title>
   <style>
-    body { font-family: -apple-system, sans-serif; background-color: #f4f5f7; color: #333; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
-    #recordBtn { background-color: #4CAF50; color: white; border: none; border-radius: 50px; padding: 18px 40px; font-size: 20px; font-weight: bold; cursor: pointer; width: 100%; max-width: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f5f7; color: #333; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; margin: 0; }
+    h1 { font-size: 20px; margin-bottom: 20px; }
+    #recordBtn { background-color: #4CAF50; color: white; border: none; border-radius: 50px; padding: 18px 40px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; width: 100%; max-width: 300px; transition: background-color 0.3s; }
     #recordBtn.recording { background-color: #ff4444; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-    #status { margin-top: 20px; font-size: 14px; color: #666; text-align: center; font-weight: bold; }
-    #result { width: 100%; max-width: 400px; height: 150px; margin-top: 20px; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; resize: none; box-sizing: border-box; }
-    .action-buttons { display: flex; gap: 10px; width: 100%; max-width: 400px; margin-top: 15px; }
-    #copyBtn, #clearBtn { border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer; flex: 1; display: none; }
-    #copyBtn { background-color: #007AFF; color: white; }
-    #clearBtn { background-color: #e0e0e0; color: #555; max-width: 80px; }
-    #historyContainer { width: 100%; max-width: 400px; margin-top: 30px; }
-    .history-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 15px; }
-    .history-time { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+    #status { margin-top: 15px; font-size: 14px; color: #666; height: 20px; text-align: center; font-weight: bold; }
+    #result { width: 100%; max-width: 400px; height: 120px; margin-top: 20px; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; line-height: 1.5; resize: none; box-sizing: border-box; }
+    .action-buttons { display: flex; gap: 10px; width: 100%; max-width: 400px; margin-top: 10px; }
+    #copyBtn { background-color: #007AFF; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; flex: 1; display: none; }
+    #clearBtn { background-color: #e0e0e0; color: #555; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: bold; cursor: pointer; width: 60px; display: none; }
+    #dictionarySection { width: 100%; max-width: 400px; margin-top: 20px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); box-sizing: border-box; }
+    #dictionarySection summary { font-weight: bold; cursor: pointer; font-size: 14px; }
+    .dic-inputs { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .dic-inputs input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    #addDicBtn { background-color: #333; color: white; border: none; border-radius: 6px; padding: 10px; font-weight: bold; cursor: pointer; }
+    #dicStatus { font-size: 12px; color: #4CAF50; margin-top: 5px; text-align: center; height: 15px; }
+    #historyContainer { width: 100%; max-width: 400px; margin-top: 25px; display: flex; flex-direction: column; gap: 12px; }
+    .history-title { font-size: 14px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 5px; font-weight: bold; }
+    .history-item { background-color: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 15px; line-height: 1.5; position: relative; }
+    .history-time { font-size: 11px; color: #aaa; margin-bottom: 5px; }
   </style>
 </head>
 <body>
-  <h1>音声入力 (安定版)</h1>
+
+  <h1>音声入力メモ (完全版)</h1>
   <button id="recordBtn">🎤 録音を開始</button>
   <div id="status">待機中</div>
-  <textarea id="result" placeholder="結果がここに表示されます..."></textarea>
+  
+  <textarea id="result" placeholder="最新の送信結果がここに表示されます..."></textarea>
+  
   <div class="action-buttons">
-    <button id="copyBtn">📋 コピー</button>
+    <button id="copyBtn">📋 全文コピー</button>
     <button id="clearBtn">🗑️</button>
   </div>
-  <div id="historyContainer"><div id="historyList"></div></div>
+
+  <details id="dictionarySection">
+    <summary>⚙️ 辞書登録（読みと表記）</summary>
+    <div class="dic-inputs">
+      <input type="text" id="dicYomi" placeholder="読み (例: たいぷれす)">
+      <input type="text" id="dicText" placeholder="表記 (例: Typeless)">
+      <button id="addDicBtn">辞書に追加</button>
+      <div id="dicStatus"></div>
+    </div>
+  </details>
+
+  <div id="historyContainer">
+    <div class="history-title">📝 履歴 (5分ごとに自動追加)</div>
+    <div id="historyList"></div>
+  </div>
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbzqOmyy1HaUmPM0RUmsBNsMrIOn4sCudFzSC4nPl9IpjS7IlXtXWNt2I2UHb4sfmKSHLg/exec';
-    const CHUNK_MS = 300000; // 5分
+    const CHUNK_MS = 300000; // 5分(300,000ms)
 
     let mediaRecorder; let audioChunks = []; let isRecording = false;
     let wakeLock = null; let chunkTimer = null;
@@ -42,7 +66,12 @@
     const statusText = document.getElementById('status');
     const resultArea = document.getElementById('result');
     const historyList = document.getElementById('historyList');
+    const dicYomi = document.getElementById('dicYomi');
+    const dicText = document.getElementById('dicText');
+    const addDicBtn = document.getElementById('addDicBtn');
+    const dicStatus = document.getElementById('dicStatus');
 
+    // --- 録音制御 ---
     recordBtn.onclick = () => { !isRecording ? start() : stop(); };
 
     async function start() {
@@ -52,29 +81,22 @@
         recordBtn.textContent = '⏹ 録音を停止';
         recordBtn.classList.add('recording');
         if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-        
-        runChunk(stream);
-      } catch (e) { alert('マイクを許可してください'); }
+        runCycle(stream);
+      } catch (e) { alert('マイクの使用を許可してください'); }
     }
 
-    function runChunk(stream) {
+    function runCycle(stream) {
       if (!isRecording) return;
-      
       audioChunks = [];
       mediaRecorder = new MediaRecorder(stream);
       mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunks, { type: 'audio/webm' });
-        send(blob);
-        if (isRecording) {
-          setTimeout(() => runChunk(stream), 500); // 0.5秒待って再開
-        }
+        sendData(blob);
+        if (isRecording) setTimeout(() => runCycle(stream), 500); 
       };
-
       mediaRecorder.start();
-      statusText.textContent = '録音中... (5分後に自動保存)';
-      
+      statusText.textContent = '録音中... (5分ごとに自動保存)';
       chunkTimer = setTimeout(() => {
         if (isRecording && mediaRecorder.state === 'recording') mediaRecorder.stop();
       }, CHUNK_MS);
@@ -83,7 +105,7 @@
     function stop() {
       isRecording = false;
       clearTimeout(chunkTimer);
-      if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
       recordBtn.textContent = '🎤 録音を開始';
       recordBtn.classList.remove('recording');
       statusText.textContent = '最終処理中...';
@@ -91,7 +113,8 @@
       mediaRecorder.stream.getTracks().forEach(t => t.stop());
     }
 
-    async function send(blob) {
+    // --- データ送信 ---
+    async function sendData(blob) {
       const reader = new FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
@@ -99,7 +122,7 @@
         try {
           const res = await fetch(GAS_URL, {
             method: 'POST',
-            body: JSON.stringify({ audioBase64: base64 })
+            body: JSON.stringify({ action: 'transcribe', audioBase64: base64 })
           });
           const data = await res.json();
           if (data.success) {
@@ -110,10 +133,39 @@
             historyList.prepend(item);
             document.getElementById('copyBtn').style.display = 'block';
             document.getElementById('clearBtn').style.display = 'block';
+            if (isRecording) statusText.textContent = '一部保存しました。継続中...';
+            else statusText.textContent = '完了';
           }
-        } catch (e) { statusText.textContent = '送信エラー。録音は継続中'; }
+        } catch (e) { statusText.textContent = '通信エラー。録音は継続しています。'; }
       };
     }
+
+    // --- 辞書登録 ---
+    addDicBtn.onclick = async () => {
+      const yomi = dicYomi.value.trim(); const text = dicText.value.trim();
+      if (!yomi || !text) return;
+      dicStatus.textContent = '登録中...';
+      try {
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'addDictionary', yomi: yomi, text: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          dicStatus.textContent = '✅ 登録しました';
+          dicYomi.value = ''; dicText.value = '';
+          setTimeout(() => dicStatus.textContent = '', 3000);
+        }
+      } catch (e) { dicStatus.textContent = 'エラー'; }
+    };
+
+    document.getElementById('copyBtn').onclick = () => {
+      navigator.clipboard.writeText(resultArea.value);
+      statusText.textContent = 'コピーしました！';
+    };
+    document.getElementById('clearBtn').onclick = () => {
+      resultArea.value = '';
+    };
   </script>
 </body>
 </html>
